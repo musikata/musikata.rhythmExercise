@@ -62,9 +62,19 @@ gulp.task('move', function() {
  */
 
 gulp.task('uglify', function() {
-    return gulp.src('src/js/**/*.js')
+    return gulp.src('src/js/*.js')
         .pipe(uglify())
         .pipe(gulp.dest('bin/js/'));
+});
+
+/**
+ * Move libraries in bin
+ */
+
+gulp.task('move-libs', function() {
+    console.log('Moving library files in bin folder');
+    return gulp.src('src/lib/**.*')
+            .pipe(gulp.dest('bin/lib'));
 });
 
 /**
@@ -135,5 +145,5 @@ gulp.task('concat', function() {
  * build tasks. simply run @gulp command or @gulp build for building production version
  */
 
-gulp.task('build', ['sass', 'js', 'htmlmin', 'cssmin', 'uglify', 'concat', 'move']);
+gulp.task('build', ['sass', 'js', 'htmlmin', 'cssmin', 'uglify', 'concat', 'move-libs', 'move']);
 gulp.task('default', ['sass', 'js', 'watch', 'browser']);
