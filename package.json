@@ -5,7 +5,7 @@
   "main": "gulpfile.js",
   "scripts": {
     "test": "NODE_ENV=test gulp js",
-    "production": "gulp build"
+    "posttest": "gulp build"
   },
   "author": "Oleh Kuchuk",
   "license": "MIT",
