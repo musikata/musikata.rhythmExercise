@@ -1,5 +1,4 @@
 #!bin/bash
-flag=$1
 base_dir="./lib"
 
 function get_latest {
