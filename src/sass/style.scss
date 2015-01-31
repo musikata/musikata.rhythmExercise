@@ -1,17 +1,6 @@
-
-// Import bourbon styles
-// 
-@import 'susy';
-@import 'breakpoint';
-
-
-// Import user styling
-
+// Import all styles
 @import '_variables';
 @import '_mixins';
 @import '_base';
 @import '_layouts';
 
-// Import your modules here
-
-@import 'modules/_modules';

@@ -1,6 +1,8 @@
-node_modules
-dist
+node_modules/
+dist/
+bin/
+/npm-debug.log
 .tmp
 .sass-cache
 .DS_Store
-app/images
+
