@@ -1,5 +1,4 @@
 var gulp = require('gulp');
-var compass = require('gulp-compass');
 var uglify = require('gulp-uglify');
 var jshint = require('gulp-jshint');
 var prefix = require('gulp-autoprefixer');
@@ -9,9 +8,12 @@ var htmlmin = require('gulp-minify-html');
 var imagemin = require('gulp-imagemin');
 var browserSync = require('browser-sync');
 var stylish = require('jshint-stylish');
+var concat = require('gulp-concat');
 
 
-// Set variables
+/**
+ * use production variable for serve files from build folder
+ */
 
 var env,
     outputDir,
@@ -23,60 +25,52 @@ if (env === 'development') {
     outputDir = 'src/';
     sassStyle = 'expanded';
 } else {
-    outputDir = 'dist/';
+    outputDir = 'bin/';
     sassStyle = 'compressed';
 }
 
-// Set specific tasks
-
-// Compile compass and sass
-
-// If use compass use this task to compile Sass/Compass
-
-gulp.task('compass', function() {
-    return gulp.src('src/sass/**/*.scss')
-        .pipe(compass({
-            sass: 'src/sass/',
-            css: 'src/css',
-            style: 'expanded'
-        }))
-        .pipe(prefix('last 2 version'))
-        .pipe(gulp.dest('src/css'));
-});
-
-// If you don't use Compass ,
-// use this task to compile sass (more fast then compass)
+/**
+ *  Conpiling sass and autoprefixing
+ */
 
 gulp.task('sass', function() {
     gulp.src('src/sass/**/*.scss')
         .pipe(sass({
-            style: 'expanded',
-	        require: ['susy','breakpoint']
-
+            style: 'expanded'
         }))
+        .pipe(prefix('last 2 version'))
         .pipe(gulp.dest('src/css/'));
 });
 
-//move image folder in build folder
+/**
+ * Move assets in build folder and compress images
+ */
+
 gulp.task('move', function() {
-    return gulp.src('src/images/**/*.*')
+    return gulp.src('src/assets/images/**/*.*')
         .pipe(imagemin({
             progressive: true,
             svgoPlugins: [{
                 removeViewBox: false
             }]
         }))
-        .pipe(gulp.dest('dist/images'));
+        .pipe(gulp.dest('bin/assets/images'));
 });
 
-// minify js files
+/**
+ * Minify js files
+ */
+
 gulp.task('uglify', function() {
     return gulp.src('src/js/**/*.js')
         .pipe(uglify())
-        .pipe(gulp.dest('dist/js/'));
+        .pipe(gulp.dest('bin/js/'));
 });
 
-// hinting and linting js files
+/**
+ * Using jshint to error searching
+ */
+
 gulp.task('js', function() {
     return gulp.src('src/js/**/*.js')
         .pipe(jshint())
@@ -84,22 +78,31 @@ gulp.task('js', function() {
 
 });
 
-//minify css files
+/**
+ * Minify css files
+ */
+
 gulp.task('cssmin', function() {
     return gulp.src('src/css/**/*.css')
         .pipe(cssmin())
-        .pipe(gulp.dest('dist/css'));
+        .pipe(gulp.dest('bin/css'));
 });
 
-//minify html files
+/**
+ * Minify html files
+ */
+
 gulp.task('htmlmin', function() {
     return gulp.src('src/*.html')
         .pipe(htmlmin())
-        .pipe(gulp.dest('dist/'));
+        .pipe(gulp.dest('bin/'));
 });
 
+/**
+ * add node server and live reloading via BrowserSync.
+ * Can be used for sync testing is a lot of browsers
+ */
 
-//init browser sync via live reloads
 gulp.task('browser', function() {
     browserSync.init(['src/css/**/*.css', 'src/*.html', 'src/js/**/*.js'], {
         server: {
@@ -108,13 +111,29 @@ gulp.task('browser', function() {
     });
 });
 
-// watch file changes
+/**
+ * watch file changes and run sass comand for @scss and @js for js files
+ */
+
 gulp.task('watch', function() {
     gulp.watch('src/sass/*.scss', ['sass']);
     gulp.watch('src/js/**/*.js', ['js']);
 
 });
 
-gulp.task('build', ['sass', 'js', 'htmlmin', 'cssmin', 'uglify', 'move']);
+/**
+ * concat js games files
+ */
 
+gulp.task('concat', function() {
+    gulp.src('src/js/**/*.js')
+        .pipe(concat('game.js'))
+        .pipe(gulp.dest('bin/js/'));
+});
+
+/**
+ * build tasks. simply run @gulp command or @gulp build for building production version
+ */
+
+gulp.task('build', ['sass', 'js', 'htmlmin', 'cssmin', 'uglify', 'concat', 'move']);
 gulp.task('default', ['sass', 'js', 'watch', 'browser']);
