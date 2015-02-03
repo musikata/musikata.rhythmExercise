@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 base_dir="./src/lib"
 
 function get_latest {
