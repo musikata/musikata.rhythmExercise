@@ -5,13 +5,13 @@ describe("RhythmParser", function() {
     var actualTimeEvents;
     var expectedTimeEvents;
 
-    actualTimeEvents = rhythmParser.toTimeEvents({beatsEvents: beatEvents, bpm: 60});
+    actualTimeEvents = rhythmParser.toTimeEvents({beatEvents: beatEvents, bpm: 60});
     expectedTimeEvents = [0, .25, .5, .75];
-    expect(actualTimeEvents).toEqual(actualTimeEvents);
+    expect(actualTimeEvents).toEqual(expectedTimeEvents);
 
-    actualTimeEvents = rhythmParser.toTimeEvents({beatsEvents: beatEvents, bpm: 120});
+    actualTimeEvents = rhythmParser.toTimeEvents({beatEvents: beatEvents, bpm: 120});
     expectedTimeEvents = [0, .125, .25, .375];
-    expect(actualTimeEvents).toEqual(actualTimeEvents);
+    expect(actualTimeEvents).toEqual(expectedTimeEvents);
 
   });
 });
