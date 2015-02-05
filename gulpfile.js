@@ -9,6 +9,7 @@ var imagemin = require('gulp-imagemin');
 var browserSync = require('browser-sync');
 var stylish = require('jshint-stylish');
 var concat = require('gulp-concat');
+var karma = require('karma').server;
 
 
 /**
@@ -139,6 +140,26 @@ gulp.task('concat', function() {
     gulp.src('src/js/**/*.js')
         .pipe(concat('game.js'))
         .pipe(gulp.dest('bin/js/'));
+});
+
+
+/**
+ * Run test once and exit
+ */
+gulp.task('test', function (done) {
+  karma.start({
+    configFile: __dirname + '/karma.conf.js',
+    singleRun: true
+  }, done);
+});
+
+/**
+ * Watch for file changes and re-run tests on each change
+ */
+gulp.task('tdd', function (done) {
+  karma.start({
+    configFile: __dirname + '/karma.conf.js'
+  }, done);
 });
 
 /**
