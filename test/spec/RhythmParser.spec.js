@@ -1,5 +1,17 @@
-describe("Testing...", function() {
-  it("does some stuff", function() {
-    expect('foo').toBe('bar');
+describe("RhythmParser", function() {
+  it("Converts beatEvents into timeEvents", function() {
+    var rhythmParser = new RhythmParser();
+    var beatEvents = [0,.25, .5, .75];
+    var actualTimeEvents;
+    var expectedTimeEvents;
+
+    actualTimeEvents = rhythmParser.toTimeEvents({beatsEvents: beatEvents, bpm: 60});
+    expectedTimeEvents = [0, .25, .5, .75];
+    expect(actualTimeEvents).toEqual(actualTimeEvents);
+
+    actualTimeEvents = rhythmParser.toTimeEvents({beatsEvents: beatEvents, bpm: 120});
+    expectedTimeEvents = [0, .125, .25, .375];
+    expect(actualTimeEvents).toEqual(actualTimeEvents);
+
   });
 });
