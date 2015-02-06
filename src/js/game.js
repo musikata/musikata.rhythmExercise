@@ -1,3 +1,3 @@
 Phaser = require('Phaser');
 
-console.log('Phaser:', Phaser);
+module.exports = {};
