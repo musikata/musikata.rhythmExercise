@@ -25,5 +25,21 @@
     "imagemin-pngcrush": "^4.0.0",
     "jshint-stylish": "^1.0.0",
     "karma-browserify": "^3.0.1"
+  },
+  "dependencies": {
+    "phaser": "^2.2.2"
+  },
+  "browser": {
+    "Phaser": "./node_modules/phaser/dist/phaser.min.js"
+  },
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  },
+  "browserify-shim": {
+    "Phaser": {
+      "exports": "Phaser"
+    }
   }
 }
