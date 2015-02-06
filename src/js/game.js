@@ -1,2 +1,3 @@
-(function() {
-})();
+Phaser = require('Phaser');
+
+console.log('Phaser:', Phaser);
