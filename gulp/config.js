@@ -24,6 +24,10 @@ module.exports = {
     src: src + "/*.html",
     dest: dest
   },
+  plainJs: {
+    src: src + "/js/metronomeworker.js",
+    dest: dest + "/js"
+  },
   iconFonts: {
     name: 'Gulp Starter Icons',
     src: src + '/icons/*.svg',
