@@ -123,6 +123,7 @@ function init(){
     // spec-compliant, and work on Chrome, Safari and Firefox.
 
     audioContext = new AudioContext();
+    window.audioCtx = audioContext;
 
     // if we wanted to load audio files, etc., this is where we should do it.
 
