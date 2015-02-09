@@ -5,107 +5,135 @@ console.log('yo');
 
 window.addEventListener("load", function(){ metronome.play()});
 
+var sprite1;
+var sprite2;
+var cursors;
+
 var game = new Phaser.Game(400, 400, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
+var target = new Phaser.Point();
+var lastElement;
+var firstElement;
+var isMoving = false;
 
 function preload() {
 
     game.load.image('mushroom', '/images/mushroom2.png');
+    game.load.spritesheet('chain','/images/chain.png',16,26);
 
 }
-
-var sprite1;
-var sprite2;
-var speeds = [];
 
 function create() {
 
-    game.input.recordPointerHistory = true;
-    game.input.recordRate = 5;
+	//	Enable p2 physics
+	game.physics.startSystem(Phaser.Physics.P2JS);
 
-    game.physics.startSystem(Phaser.Physics.ARCADE);
+    createRope();
 
-    game.stage.backgroundColor = '#2d2d2d';
+    //  Add 2 sprites which we'll join with a spring
+  sprite1 = game.add.sprite(200, 200, 'mushroom');
 
+	game.physics.p2.enable(sprite1);
+  sprite1.body.kinematic = true;
+  //sprite1.body.static= true;
+  sprite1.body.gravityScale = 0;
 
-    m2 = game.add.sprite(200, 250, 'mushroom');
-    m2.name = 'm2';
+  /*
+	sprite2 = game.add.sprite(200, 200, 'mushroom');
+	game.physics.p2.enable(sprite2);
+  game.physics.p2.gravity.y = 300;
+  game.physics.p2.restitution = 0.8;
 
-    window.g = game;
-    window.m2 = m2;
+  //var constraint = game.physics.p2.createDistanceConstraint(sprite1, sprite2, 200);
 
-    game.physics.enable(m2);
-    //m1.body.gravity.set(0, 180);
+    var spriteMaterial = game.physics.p2.createMaterial('spriteMaterial', sprite2.body);
+    var worldMaterial = game.physics.p2.createMaterial('worldMaterial');
+    //  4 trues = the 4 faces of the world in left, right, top, bottom order
+    game.physics.p2.setWorldMaterial(worldMaterial, false, true, true, true);
 
-    m2.body.immovable = true;
+    //  Here is the contact material. It's a combination of 2 materials, so whenever shapes with
+    //  those 2 materials collide it uses the following settings.
+    //  A single material can be used by as many different sprites as you like.
+    var contactMaterial = game.physics.p2.createContactMaterial(spriteMaterial, worldMaterial);
 
-    /*
-    m1 = game.add.sprite(200, 150, 'mushroom');
-    m1.name = 'm1';
-    game.physics.enable(m1);
-    window.m1 = m1;
-    m1.body.bounce.set(1);
-
-    m1.inputEnabled = true;
-    m1.input.enableDrag(true);
-    m1.body.collideWorldBounds = true;
-
-    m1.events.onDragStart.add(function() {
-      console.log('start');
-      m1.body.moves = false;
-    });
-
-    m1.events.onDragStop.add(function() {
-      console.log('stop');
-      m1.body.moves = true;
-      m1.body.velocity.y = 150;
-    });
+    contactMaterial.friction = 0.0;     // Friction to use in the contact of these two materials.
+    contactMaterial.restitution = 1.0;  // Restitution (i.e. how bouncy it is!) to use in the contact of these two materials.
+    contactMaterial.stiffness = 1e7;    // Stiffness of the resulting ContactEquation that this ContactMaterial generate.
+    contactMaterial.relaxation = 3;     // Relaxation of the resulting ContactEquation that this ContactMaterial generate.
+    contactMaterial.frictionStiffness = 1e7;    // Stiffness of the resulting FrictionEquation that this ContactMaterial generate.
+    contactMaterial.frictionRelaxation = 3;     // Relaxation of the resulting FrictionEquation that this ContactMaterial generate.
+    contactMaterial.surfaceVelocity = 0;  
     */
 
+    game.input.onDown.add(function() {
+      isMoving = true;
+      accelerateToObject(lastElement,target,1000);
+    }, this);
+    game.input.onUp.add(function() {
+      isMoving = false;
+    }, this);
+    game.input.addMoveCallback(move, this);
 }
 
-var bullets = [];
-nextShotAt = 0;
-shotDelay = 100;
-function fire() {
-  if (nextShotAt > game.time.now) {
-    return;
+function createRope(){
+    if (lastElement){return;}
+    var length=5;
+    var xAnchor=100;
+    var yAnchor=100;
+    var height = 20;  //height for the physics body - your image height is 8px
+    var width = 16;   //this is the width for the physics body.. if to small the rectangles will get scrambled together
+    var maxForce =10000;  //the force that holds the rectangles together
+    for(var i=0; i<=length; i++){
+        var x = xAnchor;                 // all rects are on the same x position
+        var y = yAnchor+(i*height);               // every new rect is positioned below the last
+
+        if (i%length == length-1){
+          newElement= game.add.sprite(x, y, 'chain',0); 
+        }
+        else if (i == 0 ){
+          newElement= game.add.sprite(x, y, 'chain',0);
+          firstElement = newElement; 
+        }
+        else {
+          newElement = game.add.sprite(x, y, 'chain',1); 
+        }
+       
+        game.physics.p2.enable(newElement,false);      // enable physicsbody
+        newElement.body.setRectangle(width,height);    //set custom rectangle 
+        newElement.body.mass =  .1;
+        newElement.body.gravityScale=0;
+        if (i == 0){ newElement.body.kinematic = true;}
+        if(lastElement){game.physics.p2.createRevoluteConstraint(newElement, [0,-10], lastElement, [0,10], maxForce);}
+        lastElement = newElement;
+    }; 
+ firstElement.bringToTop();
+
+
+ lastElement.body.onBeginContact.add(function blockHit (body, shapeA, shapeB, equation) {
+  if (body === sprite1.body) {
+    console.log("whammo");
+    metronome.playNote();
   }
-
-  nextShotAt = game.time.now + shotDelay;
-
-   var bullet = game.add.sprite(200, 150, 'mushroom');
-   game.physics.enable(bullet, Phaser.Physics.ARCADE);
-   bullet.body.gravity.set(0, 180);
-   bullet.body.bounce.set(1);
-   //bullet.body.velocity.y = -500;
-   bullets.push(bullet);
+ }, this);
 }
 
 function update() {
-
-    for (var i = 0; i < bullets.length; i++) {
-      game.physics.arcade.collide(bullets[i], m2, collisionHandler, null, this);
-    }
-    //game.physics.arcade.collide(m1, m2, collisionHandler, null, this);
-
-    if (game.input.keyboard.isDown(Phaser.Keyboard.Z) ||
-        game.input.activePointer.isDown) {
-      fire();
-    }
-
-
-  /*
-    if (game.input.activePointer.isDown) {
-      console.log("speed: ", game.input.speed);
-    }
-    */
-
 }
 
-function collisionHandler (obj1, obj2) {
-  metronome.playNote();
-  obj1.body.velocity.x = 75;
+
+function accelerateToObject(obj1, obj2, speed) {
+  if (typeof speed === 'undefined') { speed = 60; }
+  var angle = Math.atan2(obj2.y - obj1.y, obj2.x - obj1.x);
+  obj1.body.force.x = Math.cos(angle) * speed;
+  obj1.body.force.y = Math.sin(angle) * speed;
 }
+
+function move(pointer, x, y) {
+  if (isMoving){
+    target.setTo(x, y);
+    accelerateToObject(lastElement,target,1000);
+  }
+}
+
 
 function render() {
 
