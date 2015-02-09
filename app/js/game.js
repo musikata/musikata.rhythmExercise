@@ -27,22 +27,23 @@ function create() {
     game.stage.backgroundColor = '#2d2d2d';
 
 
-    m1 = game.add.sprite(200, 150, 'mushroom');
-    m1.name = 'm1';
-
     m2 = game.add.sprite(200, 250, 'mushroom');
     m2.name = 'm2';
 
     window.g = game;
-    window.m1 = m1;
     window.m2 = m2;
 
-    game.physics.enable(m1);
     game.physics.enable(m2);
-    m1.body.bounce.set(1);
     //m1.body.gravity.set(0, 180);
 
     m2.body.immovable = true;
+
+    /*
+    m1 = game.add.sprite(200, 150, 'mushroom');
+    m1.name = 'm1';
+    game.physics.enable(m1);
+    window.m1 = m1;
+    m1.body.bounce.set(1);
 
     m1.inputEnabled = true;
     m1.input.enableDrag(true);
@@ -58,12 +59,40 @@ function create() {
       m1.body.moves = true;
       m1.body.velocity.y = 150;
     });
+    */
 
+}
+
+var bullets = [];
+nextShotAt = 0;
+shotDelay = 100;
+function fire() {
+  if (nextShotAt > game.time.now) {
+    return;
+  }
+
+  nextShotAt = game.time.now + shotDelay;
+
+   var bullet = game.add.sprite(200, 150, 'mushroom');
+   game.physics.enable(bullet, Phaser.Physics.ARCADE);
+   bullet.body.gravity.set(0, 180);
+   bullet.body.bounce.set(1);
+   //bullet.body.velocity.y = -500;
+   bullets.push(bullet);
 }
 
 function update() {
 
-    game.physics.arcade.collide(m1, m2, collisionHandler, null, this);
+    for (var i = 0; i < bullets.length; i++) {
+      game.physics.arcade.collide(bullets[i], m2, collisionHandler, null, this);
+    }
+    //game.physics.arcade.collide(m1, m2, collisionHandler, null, this);
+
+    if (game.input.keyboard.isDown(Phaser.Keyboard.Z) ||
+        game.input.activePointer.isDown) {
+      fire();
+    }
+
 
   /*
     if (game.input.activePointer.isDown) {
@@ -75,11 +104,9 @@ function update() {
 
 function collisionHandler (obj1, obj2) {
   metronome.playNote();
+  obj1.body.velocity.x = 75;
 }
 
 function render() {
-
-    game.debug.body(m1);
-    game.debug.body(m2);
 
 }
