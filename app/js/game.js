@@ -3,7 +3,7 @@ metronome = require('./metronome');
 
 console.log('yo');
 
-//window.addEventListener("load", function(){ metronome.play()});
+window.addEventListener("load", function(){ metronome.play()});
 
 var game = new Phaser.Game(400, 400, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
 
