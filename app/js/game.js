@@ -3,7 +3,19 @@ var metronome = require('./metronome');
 
 console.log('yo');
 
+window.addEventListener("load", function(){ metronome.play()});
+
 var game = new Phaser.Game(400, 400, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
+var target = new Phaser.Point();
+var springTop;
+var springBall;
+var isMoving = false;
+var dropTop = 120;
+var throttleMoving = false;
+var nextMoveTime = -1;
+var moveDelay = 100;
+
+
 var ptrMotionState;
 var oldSign = 1;
 var oldTime = 0;
@@ -12,6 +24,7 @@ window.dddyThresh = .01;
 
 function preload() {
   game.load.image('mushroom', '/images/mushroom2.png');
+  game.load.spritesheet('chain','/images/chain.png',16,26);
 }
 
 function create() {
@@ -19,28 +32,68 @@ function create() {
   game.input.recordLimit = 100;
   game.input.recordRate = 20;
 
-  sprite1 = game.add.sprite(200, 300, 'mushroom');
-  sprite2 = game.add.sprite(100, 300, 'mushroom');
-
   game.input.addMoveCallback(onMove);
+
+	//	Enable p2 physics
+	game.physics.startSystem(Phaser.Physics.P2JS);
+
+  //  Add 2 sprites which we'll join with a spring
+  sprite1 = game.add.sprite(200, 300, 'mushroom');
+
+	game.physics.p2.enable(sprite1);
+  sprite1.body.kinematic = true;
+
+  springTop = game.add.sprite(200, 40, 'chain', 1);
+  springBall = game.add.sprite(200, dropTop, 'mushroom');
+	game.physics.p2.enable([springTop, springBall]);
+  //  The parameters are: createSpring(sprite1, sprite2, restLength, stiffness, damping, worldA, worldB, localA, localB)
+  game.physics.p2.createSpring(springTop, springBall, 120, 25, 1);
+  springTop.body.kinematic = true;
+  springBall.body.data.fixedRotation = true;
+
+  game.input.onDown.add(function() {
+    isMoving = true;
+    triggerSpring();
+  }, this);
+  game.input.onUp.add(function() {
+    isMoving = false;
+  }, this);
+
+  game.physics.p2.gravity.y = 0;
+
+  springBall.body.onBeginContact.add(function blockHit (body, shapeA, shapeB, equation) {
+    if (body === sprite1.body) {
+      metronome.playNote();
+      springBall.body.y -= 50;
+      springBall.body.force.y = 0;
+      springBall.body.velocity.y = 0;
+      throttleMoving = true;
+    }
+  }, this);
 }
 
 function update() {
+  springBall.body.x = 200;
 }
 
 function render() {
 }
 
 function onMove(pointer) {
-  var dt = game.time.now - oldTime;
-  oldTime = game.time.now;
-  if (dt > timeThresh) {
-    oldSign = 0;
+
+  if (! isMoving) {
+    return;
   }
+
+  var dt = game.time.now - oldTime;
+  if (dt < timeThresh) {
+    return;
+  }
+  oldTime = game.time.now;
 
   ptrMotionState = getPointerMotionState(pointer);
   if (ptrMotionState) {
-    sprite1.height = 50 * ptrMotionState.ddy;
+    //sprite1.height = 50 * ptrMotionState.ddy;
     var newSign;
     //newSign = (ptrMotionState.ddy < 0) ? -1 : 1;
     if (Math.abs(ptrMotionState.dddy) > dddyThresh) {
@@ -49,8 +102,9 @@ function onMove(pointer) {
       newSign = oldSign;
     }
     if (oldSign != newSign) {
-      sprite2.height *= -1;
-      metronome.playNote();
+      //sprite2.height *= -1;
+      //metronome.playNote();
+      triggerSpring();
     }
     oldSign = newSign;
   }
@@ -90,4 +144,13 @@ function getPointerMotionState(pointer, lookbackTime) {
 
   return motionState;
 
+}
+
+function triggerSpring() {
+  if (nextMoveTime > game.time.now) {
+    return;
+  }
+  nextMoveTime = game.time.now + moveDelay;
+
+  springBall.body.force.y = .5*1e5;
 }

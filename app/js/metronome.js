@@ -70,7 +70,6 @@ function playNote() {
   osc.connect( audioContext.destination );
   osc.frequency.value = 659;
   var time = audioContext.currentTime;
-  console.log("time: ", time);
   osc.start(time);
   osc.stop( time + .2 );
 }
