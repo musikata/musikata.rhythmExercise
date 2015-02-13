@@ -86,5 +86,6 @@ function hitScroll(bodyA, bodyB) {
 
 function onScrollContact() {
   console.log('osc');
+  metronome.playNote();
 }
 
