@@ -110,7 +110,7 @@ function create() {
 
       // Update brush pos based on parameterized t.
       //var yOffset = brushYRange * Math.cos(Math.PI/2 * Math.abs(t));
-      var yOffset = brushYRange * (Math.pow(t,2));
+      var yOffset = brushYRange * (Math.pow(1-Math.abs(t),2));
       game.teacherSprites.brush.body.y = brushStartY + yOffset;
     }
   });
