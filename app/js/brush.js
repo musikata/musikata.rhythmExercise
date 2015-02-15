@@ -14,7 +14,7 @@ var beatLength = .05;
 var bpm = 60;
 var spb = 60/bpm;
 var audioEvents = {};
-var audioEventWindow = .3;
+var audioEventWindow = spb/2.0;
 
 window.beatEventsToAudioEvents = function() {
   var audioNow = audioCtx.currentTime;
@@ -109,7 +109,8 @@ function create() {
       var t = data.dt/audioEventWindow;
 
       // Update brush pos based on parameterized t.
-      var yOffset = brushYRange * Math.cos(Math.PI/2 * Math.abs(t));
+      //var yOffset = brushYRange * Math.cos(Math.PI/2 * Math.abs(t));
+      var yOffset = brushYRange * (Math.pow(t,2));
       game.teacherSprites.brush.body.y = brushStartY + yOffset;
     }
   });
@@ -139,7 +140,7 @@ function addScrollAndBrush(opts) {
   opts = opts || {};
 
   var x = opts.x;
-  var springY = opts.springY || 50;
+  var springY = opts.springY || 150;
   var scrollY = opts.scrollY || 300;
   var springLen = opts.springLen || 50;
   var springK = opts.springK || 10;
@@ -187,11 +188,14 @@ function addScrollAndBrush(opts) {
 
 function onScrollContact() {
   console.log('osc');
-  metronome.playNote();
+  //metronome.playNote();
 }
 
 function onDown() {
+/*
   var playerBrush = game.playerSprites.brush;
   playerBrush.body.force.y = 1e5;
+  */
+beatEventsToAudioEvents();
 }
 
