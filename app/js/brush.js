@@ -2,15 +2,29 @@ Phaser = require('Phaser');
 var metronome = require('./metronome');
 var postal = require('postal');
 
-console.log('yo');
 
+var gridConfig = {
+  numCols: 12,
+  numRows: 8,
+  width: 450,
+  height: 300,
+}
+gridConfig.cellWidth = gridConfig.width/gridConfig.numCols;
+gridConfig.cellHeight = gridConfig.height/gridConfig.numRows;
 
-window.addEventListener("load", function() {
-  window.game = new Phaser.Game(400, 400, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
-});
+var layoutConfig = {
+  gutterWidth: gridConfig.cellWidth * 2,
+  swipeAreaHeight: gridConfig.cellHeight * 6,
+  numGutters: 1
+};
+layoutConfig.clickAreaHeight = gridConfig.height - layoutConfig.swipeAreaHeight;
+layoutConfig.mainAreaHeight = gridConfig.height;
+layoutConfig.mainAreaWidth = gridConfig.width - (layoutConfig.gutterWidth * layoutConfig.numGutters);
+if (layoutConfig.numGutters == 1) {
+  layoutConfig.mainAreaLeft = 0;
+}
 
 var totalBeats = 4;
-//var defaultNotes = [0, 1, 2, 2.5, 3];
 var defaultNotes = [0, 1, 1.5, 2,2.25, 2.5, 2.75, 3];
 var noteEvents = [];
 var bpm = 60;
@@ -26,6 +40,147 @@ var audioSources = {};
 var noteCounter = 0;
 var teacherScrollTop;
 
+window.addEventListener("load", function() {
+  window.game = new Phaser.Game(gridConfig.width, gridConfig.height, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
+});
+
+function preload() {
+  game.stage.backgroundColor = '#DDDDDD';
+
+  game.load.image('brush', '/images/brush.png');
+  game.load.image('scroll', '/images/scroll.png');
+}
+
+
+function create() {
+
+  // Initialize physics.
+	game.physics.startSystem(Phaser.Physics.P2JS);
+
+  game.teacherSprites = addScrollAndBrush({x: 100});
+  game.playerSprites = addScrollAndBrush({x: 300, hasSpring: true});
+
+  teacherScrollTop = game.teacherSprites.scroll.body.y - game.teacherSprites.scroll.height/2;
+
+  game.input.onDown.add(onDown);
+
+  // Update teacher brush on audio events.
+  var brushStartY = game.teacherSprites.brush.body.y;
+  var brushEndY = game.teacherSprites.scroll.body.y - game.teacherSprites.brush.height/2;
+  var brushYRange = brushEndY - brushStartY;
+  var bouncingSub = postal.subscribe({
+    channel: "audio",
+    topic: "bouncing.toggle",
+    callback: function(data, envelope) {
+      console.log('on bouncing.toggle');
+      isBouncing = ! isBouncing;
+    }
+  });
+
+  var bounceSub = postal.subscribe({
+    channel: "audio",
+    topic: "bounce.start",
+    callback: function(data, envelope) {
+      console.log('on bouncing.start');
+      bounceParameters = data.evtData.bounceParameters;
+      var normalizedBounceWidth = 2*bounceParameters.radius/spb;
+      var scale = normalizedBounceWidth; // linear
+      //var scale = Math.pow(normalizedBounceWidth, .5); // sqrt
+      //var scale = Math.log(normalizedBounceWidth + 1); // log
+      var scale = Math.log2(normalizedBounceWidth + 1); // log2
+      //var scale = Math.log10(normalizedBounceWidth + 1); // log10
+      bounceParameters.height = bounceHeight * scale;
+    }
+  });
+
+  // Setup audio events.
+  notesToAudioEvents(defaultNotes);
+}
+
+function update() {
+  processAudioEvents();
+
+  // Update teacher brush if bouncing.
+  if (isBouncing) {
+    var audioT = audioCtx.currentTime;
+
+    // Parameterize time in terms of current bounce parameters.
+    var t = (audioT - bounceParameters.middle)/bounceParameters.radius;
+    t = Math.max(-1, t);
+    t = Math.min(1, t);
+
+    // Update brush pos based on parameterized t.
+    var yOffset = bounceParameters.height * (1 - Math.pow(t,2));
+    if (yOffset && t) {
+      game.teacherSprites.brush.body.y = teacherScrollTop - yOffset - game.teacherSprites.brush.height/2;
+    }
+  }
+
+  game.teacherSprites.brush.body.force.y = 0;
+  game.teacherSprites.brush.body.velocity.y = 0;
+
+}
+
+function render() {
+}
+
+function addScrollAndBrush(opts) {
+  opts = opts || {};
+
+  var x = opts.x;
+  var springY = opts.springY || 150;
+  var scrollY = opts.scrollY || 300;
+  var springLen = opts.springLen || 50;
+  var springK = opts.springK || 10;
+  var damping = opts.damping || 1;
+  var hasSpring = opts.hasSpring || false;
+
+  // Setup brush
+  var brush = game.add.sprite(x, springY, 'brush');
+	game.physics.p2.enable(brush);
+  brush.body.y += brush.height/2;
+  brush.body.fixedRotation = true;
+
+  // Setup scroll.
+  var scroll = game.add.sprite(x, scrollY, 'scroll');
+	game.physics.p2.enable(scroll);
+
+  // Setup brush spring.
+  var springNode = game.add.sprite(x, springY);
+  springNode.width = springNode.height = 1;
+  game.physics.p2.enable(springNode, true, true);
+  springNode.body.static = true;
+
+  var springNodeAnchor = [0,0];
+  var brushAnchor = [0, -1 * brush.height/2.0];
+
+  var pConstraint = game.physics.p2.createPrismaticConstraint(springNode, brush, true, springNodeAnchor, brushAnchor,[0,1]);
+  pConstraint.upperLimitEnabled = true;
+  pConstraint.upperLimit = -0.1;
+
+  if (hasSpring) {
+    var spring = game.physics.p2.createSpring(springNode, brush, springLen, springK, damping, null, null, springNodeAnchor, brushAnchor);
+  }
+
+  // Setup scroll physics.
+  scroll.body.kinematic = true;
+
+  // Handle brush-scroll collision.
+  scroll.body.onBeginContact.add(onScrollContact);
+
+  return {
+    brush: brush,
+    scroll: scroll
+  };
+}
+
+function onScrollContact() {
+  console.log('osc');
+  //metronome.playNote();
+}
+
+function onDown() {
+}
 
 window.notesToAudioEvents = function(notes) {
 
@@ -197,148 +352,5 @@ function processAudioEvent(evt, audioNow) {
       }
     });
   });
-}
-
-function preload() {
-  game.stage.backgroundColor = '#DDDDDD';
-
-  game.load.image('brush', '/images/brush.png');
-  game.load.image('scroll', '/images/scroll.png');
-}
-
-
-function create() {
-
-  // Initialize physics.
-	game.physics.startSystem(Phaser.Physics.P2JS);
-
-  game.teacherSprites = addScrollAndBrush({x: 100});
-  game.playerSprites = addScrollAndBrush({x: 300, hasSpring: true});
-
-  teacherScrollTop = game.teacherSprites.scroll.body.y - game.teacherSprites.scroll.height/2;
-
-  game.input.onDown.add(onDown);
-
-  // Update teacher brush on audio events.
-  var brushStartY = game.teacherSprites.brush.body.y;
-  var brushEndY = game.teacherSprites.scroll.body.y - game.teacherSprites.brush.height/2;
-  var brushYRange = brushEndY - brushStartY;
-  var bouncingSub = postal.subscribe({
-    channel: "audio",
-    topic: "bouncing.toggle",
-    callback: function(data, envelope) {
-      console.log('on bouncing.toggle');
-      isBouncing = ! isBouncing;
-    }
-  });
-
-  var bounceSub = postal.subscribe({
-    channel: "audio",
-    topic: "bounce.start",
-    callback: function(data, envelope) {
-      console.log('on bouncing.start');
-      bounceParameters = data.evtData.bounceParameters;
-      var normalizedBounceWidth = 2*bounceParameters.radius/spb;
-      var scale = normalizedBounceWidth; // linear
-      //var scale = Math.pow(normalizedBounceWidth, .5); // sqrt
-      //var scale = Math.log(normalizedBounceWidth + 1); // log
-      var scale = Math.log2(normalizedBounceWidth + 1); // log2
-      //var scale = Math.log10(normalizedBounceWidth + 1); // log10
-      bounceParameters.height = bounceHeight * scale;
-    }
-  });
-
-  // Setup audio events.
-  notesToAudioEvents(defaultNotes);
-}
-
-function update() {
-  processAudioEvents();
-
-  // Update teacher brush if bouncing.
-  if (isBouncing) {
-    var audioT = audioCtx.currentTime;
-
-    // Parameterize time in terms of current bounce parameters.
-    var t = (audioT - bounceParameters.middle)/bounceParameters.radius;
-    t = Math.max(-1, t);
-    t = Math.min(1, t);
-
-    // Update brush pos based on parameterized t.
-    var yOffset = bounceParameters.height * (1 - Math.pow(t,2));
-    if (yOffset && t) {
-      game.teacherSprites.brush.body.y = teacherScrollTop - yOffset - game.teacherSprites.brush.height/2;
-    }
-  }
-
-  game.teacherSprites.brush.body.force.y = 0;
-  game.teacherSprites.brush.body.velocity.y = 0;
-
-}
-
-function render() {
-}
-
-function addScrollAndBrush(opts) {
-  opts = opts || {};
-
-  var x = opts.x;
-  var springY = opts.springY || 150;
-  var scrollY = opts.scrollY || 300;
-  var springLen = opts.springLen || 50;
-  var springK = opts.springK || 10;
-  var damping = opts.damping || 1;
-  var hasSpring = opts.hasSpring || false;
-
-  // Setup brush
-  var brush = game.add.sprite(x, springY, 'brush');
-	game.physics.p2.enable(brush);
-  brush.body.y += brush.height/2;
-  brush.body.fixedRotation = true;
-
-  // Setup scroll.
-  var scroll = game.add.sprite(x, scrollY, 'scroll');
-	game.physics.p2.enable(scroll);
-
-  // Setup brush spring.
-  var springNode = game.add.sprite(x, springY);
-  springNode.width = springNode.height = 1;
-  game.physics.p2.enable(springNode, true, true);
-  springNode.body.static = true;
-
-  var springNodeAnchor = [0,0];
-  var brushAnchor = [0, -1 * brush.height/2.0];
-
-  var pConstraint = game.physics.p2.createPrismaticConstraint(springNode, brush, true, springNodeAnchor, brushAnchor,[0,1]);
-  pConstraint.upperLimitEnabled = true;
-  pConstraint.upperLimit = -0.1;
-
-  if (hasSpring) {
-    var spring = game.physics.p2.createSpring(springNode, brush, springLen, springK, damping, null, null, springNodeAnchor, brushAnchor);
-  }
-
-  // Setup scroll physics.
-  scroll.body.kinematic = true;
-
-  // Handle brush-scroll collision.
-  scroll.body.onBeginContact.add(onScrollContact);
-
-  return {
-    brush: brush,
-    scroll: scroll
-  };
-}
-
-function onScrollContact() {
-  console.log('osc');
-  //metronome.playNote();
-}
-
-function onDown() {
-/*
-  var playerBrush = game.playerSprites.brush;
-  playerBrush.body.force.y = 1e5;
-  */
-  notesToAudioEvents(defaultNotes);
 }
 
