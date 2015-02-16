@@ -14,6 +14,7 @@ gridConfig.cellHeight = gridConfig.height/gridConfig.numRows;
 
 var layoutConfig = {
   gutterWidth: gridConfig.cellWidth * 2,
+  gutterBorderWidth: 2,
   swipeAreaHeight: gridConfig.cellHeight * 6,
   numGutters: 1
 };
@@ -53,6 +54,8 @@ function preload() {
 
 
 function create() {
+
+  createLayout();
 
   // Initialize physics.
 	game.physics.startSystem(Phaser.Physics.P2JS);
@@ -94,7 +97,51 @@ function create() {
   });
 
   // Setup audio events.
-  notesToAudioEvents(defaultNotes);
+  //notesToAudioEvents(defaultNotes);
+}
+
+function createLayout() {
+  // Draw gutters.
+  renderGutter({
+    left: gridConfig.width - layoutConfig.gutterWidth
+  });
+  // Draw main area.
+}
+
+function renderGutter(opts) {
+  createSwipeArea({
+    x: 0,
+    y: 0,
+    height: layoutConfig.swipeAreaHeight,
+    width: layoutConfig.gutterWidth,
+    borderWidth: layoutConfig.gutterBorderWidth
+  });
+
+  createClickArea({
+    x: 0,
+    y: layoutConfig.swipeAreaHeight,
+    height: layoutConfig.clickAreaHeight,
+    width: layoutConfig.gutterWidth,
+    borderWidth: layoutConfig.gutterBorderWidth
+  });
+}
+
+function createSwipeArea(opts) {
+  var g = game.add.graphics(opts.x, opts.y);
+  var borderWidth = opts.borderWidth;
+  g.lineStyle(borderWidth, 0xccccccc, 1);
+  g.beginFill(0xffffff);
+  g.drawRect(borderWidth/2, borderWidth/2, opts.width, opts.height);
+  g.endFill(0xff3300);
+}
+
+function createClickArea(opts) {
+  var g = game.add.graphics(opts.x, opts.y);
+  var borderWidth = opts.borderWidth;
+  g.lineStyle(borderWidth, 0xccccccc, 1);
+  g.beginFill(0xffffff);
+  g.drawRect(borderWidth/2, borderWidth/2, opts.width, opts.height);
+  g.endFill(0xff3300);
 }
 
 function update() {
