@@ -10,7 +10,8 @@ window.addEventListener("load", function() {
 });
 
 var totalBeats = 4;
-var defaultNotes = [0, 1, 2, 2.5, 3];
+//var defaultNotes = [0, 1, 2, 2.5, 3];
+var defaultNotes = [0, 1, 1.5, 2,2.25, 2.5, 2.75, 3];
 var noteEvents = [];
 var bpm = 60;
 var spb = 60/bpm;
@@ -19,9 +20,11 @@ var audioEvents = {};
 var audioEventWindow = spb/2.0;
 var audioDelay = 1;
 var isBouncing = false;
-var bounceHeight = 30;
+var bounceHeight = 100;
 var bounceParameters = {};
-
+var audioSources = {};
+var noteCounter = 0;
+var teacherScrollTop;
 
 
 window.notesToAudioEvents = function(notes) {
@@ -41,6 +44,8 @@ window.notesToAudioEvents = function(notes) {
 
   notesToNoteEvents(notes);
   noteEventsToAudioEvents();
+
+  console.log('ae: ', audioEvents);
 }
 
 window.noteEventsToAudioEvents = function() {
@@ -51,16 +56,20 @@ window.noteEventsToAudioEvents = function() {
 
     var evtData = {noteEvent: noteEvent};
 
-    var isNoteEvent = noteEvent.tags && (
-      (noteEvent.tags.indexOf('note.start') > -1) ||
-      (noteEvent.tags.indexOf('note.end') > -1));
-    if (isNoteEvent) {
-      //TODO:  schedule audio here.
+    if (noteEvent.tags && noteEvent.tags.indexOf('note.start') > -1) {
+      var osc = audioCtx.createOscillator();
+      osc.connect( audioCtx.destination );
+      osc.frequency.value = 440.0;
+      osc.start( audioT);
+      audioSources[noteEvent.noteId] = osc;
     }
 
-    var isBounceEvent = noteEvent.tags && (
-      noteEvent.tags.indexOf('bounce.start') > -1);
-    if (isBounceEvent) {
+    if (noteEvent.tags && noteEvent.tags.indexOf('note.end') > -1) {
+      audioSources[noteEvent.noteId].stop(audioT);
+      delete audioSources[noteEvent.noteId];
+    }
+
+    if (noteEvent.tags && noteEvent.tags.indexOf('bounce.start') > -1) {
       var bounceParameters = {
         start: audioNow + (spb * noteEvent.bounce.start),
         end: audioNow + (spb * noteEvent.bounce.end)
@@ -90,10 +99,10 @@ window.notesToNoteEvents = function(notes) {
   var firstNote = notes[0];
   var lastNote = notes[notes.length - 1];
 
-  // Start bouncing at beat 0.
+  // Start bouncing at beat -1.
   noteEvents.push({
     tags: ['bouncing.toggle'],
-    t: 0
+    t: -.5
   });
 
   // Initial bounce.
@@ -108,28 +117,33 @@ window.notesToNoteEvents = function(notes) {
   });
 
   // Notes.
-  for (var i=0; i < notes.length-1; i++) {
+  for (var i=0; i < notes.length; i++) {
+    noteCounter += 1;
     var currentNote = notes[i];
-    var nextNote = notes[i+1];
 
     noteEvents.push({
       tags: ['note.start'],
       t: currentNote.start,
+      noteId: noteCounter
     });
 
     noteEvents.push({
       tags: ['note.end'],
-      t: currentNote.end
+      t: currentNote.end,
+      noteId: noteCounter
     });
 
-    noteEvents.push({
-      tags: ['bounce.start'],
-      t: currentNote.end,
-      bounce: {
-        start: currentNote.end,
-        end: nextNote.start
-      }
-    });
+    if (i < notes.length - 1) {
+      var nextNote = notes[i+1];
+      noteEvents.push({
+        tags: ['bounce.start'],
+        t: currentNote.end,
+        bounce: {
+          start: currentNote.end,
+          end: nextNote.start
+        }
+      });
+    }
   }
   
   // Ending bounce.
@@ -138,14 +152,14 @@ window.notesToNoteEvents = function(notes) {
     t: lastNote.end,
     bounce: {
       start: lastNote.end,
-      end: firstNote.start + totalBeats
+      end: totalBeats + firstNote.start
     }
   });
 
   // Stop bouncing.
   noteEvents.push({
     tags: ['bouncing.toggle'],
-    t: totalBeats
+    t: totalBeats - .5
   });
 }
 
@@ -201,6 +215,8 @@ function create() {
   game.teacherSprites = addScrollAndBrush({x: 100});
   game.playerSprites = addScrollAndBrush({x: 300, hasSpring: true});
 
+  teacherScrollTop = game.teacherSprites.scroll.body.y - game.teacherSprites.scroll.height/2;
+
   game.input.onDown.add(onDown);
 
   // Update teacher brush on audio events.
@@ -222,13 +238,18 @@ function create() {
     callback: function(data, envelope) {
       console.log('on bouncing.start');
       bounceParameters = data.evtData.bounceParameters;
-      bounceParameters.height = bounceHeight * (2*bounceParameters.radius)/spb;
+      var normalizedBounceWidth = 2*bounceParameters.radius/spb;
+      var scale = normalizedBounceWidth; // linear
+      //var scale = Math.pow(normalizedBounceWidth, .5); // sqrt
+      //var scale = Math.log(normalizedBounceWidth + 1); // log
+      var scale = Math.log2(normalizedBounceWidth + 1); // log2
+      //var scale = Math.log10(normalizedBounceWidth + 1); // log10
+      bounceParameters.height = bounceHeight * scale;
     }
   });
 
   // Setup audio events.
   notesToAudioEvents(defaultNotes);
-  console.log('ae: ', audioEvents);
 }
 
 function update() {
@@ -246,8 +267,7 @@ function update() {
     // Update brush pos based on parameterized t.
     var yOffset = bounceParameters.height * (1 - Math.pow(t,2));
     if (yOffset && t) {
-      var scrollTop = game.teacherSprites.scroll.body.y - game.teacherSprites.scroll.height/2;
-      game.teacherSprites.brush.body.y = scrollTop - yOffset - game.teacherSprites.brush.height/2;
+      game.teacherSprites.brush.body.y = teacherScrollTop - yOffset - game.teacherSprites.brush.height/2;
     }
   }
 
