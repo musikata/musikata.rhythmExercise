@@ -50,6 +50,11 @@ module.exports = {
       entries: src + '/js/game.js',
       dest: dest + '/js',
       outputName: 'game.js',
+    },
+    {
+      entries: src + '/js/pendulum-brush.js',
+      dest: dest + '/js',
+      outputName: 'pendulum-brush.js',
     }]
   },
   production: {
