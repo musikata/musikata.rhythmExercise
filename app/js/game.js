@@ -1,1 +1,1 @@
-brush.js
+require('./pointerSpeed');
