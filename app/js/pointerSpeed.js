@@ -48,12 +48,16 @@ function create() {
   shroom = game.add.sprite(200,200, 'mushroom');
   shroom.height = shroom.width = 25;
 
+  game.input.addMoveCallback(updateSpeedometer);
+
 }
 function update() {
+  /*
   var ptr = game.input.activePointer;
   if (ptr.isDown) {
     updateSpeedometer(ptr);
   }
+  */
 }
 
 window.base = 1.5;
