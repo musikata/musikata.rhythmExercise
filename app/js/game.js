@@ -1,1 +1,1 @@
-require('./pointerSpeed');
+require('./varyingSize');
