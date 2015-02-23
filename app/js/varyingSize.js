@@ -1,4 +1,5 @@
 Phaser = require('Phaser');
+metronome = require('./metronome');
 
 var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update });
 
@@ -15,8 +16,9 @@ var oldDelta = 0;
 window.rate = 5e0;
 window.scale = 4;
 window.smoothing = 10;
-window.maxDelta = 0;
-window.deltaMax = 30;
+window.deltaMax = 15;
+window.deltaThresh = .8;
+var isPlaying = false;
 
 function create() {
 
@@ -51,10 +53,6 @@ function update() {
   var filteredDelta = oldDelta + (rawDelta - oldDelta)/smoothing;
   oldDelta = filteredDelta;
 
-  if (Math.abs(filteredDelta) > maxDelta) {
-    maxDelta = Math.abs(filteredDelta);
-  }
-
   var sign = filteredDelta < 0 ? -1 : 1;
   var delta = sign * Math.min(1, Math.abs(filteredDelta/deltaMax));
 
@@ -69,5 +67,14 @@ function update() {
     sprites[s].height = spriteSize * offsets[s];
   }
 
+  if (isPlaying) {
+    if (Math.abs(delta) < (deltaThresh *.8)) {
+      isPlaying = false;
+    }
+  }
+  else if (Math.abs(delta) >= deltaThresh ) {
+    metronome.playNote();
+    isPlaying = true;
+  }
 
 }
