@@ -1,2 +1,3 @@
-require('./varyingSize');
+//require('./varyingSize');
 //require('./velocityTrail');
+require('./collectPos');

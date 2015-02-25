@@ -1,7 +1,7 @@
 Phaser = require('Phaser');
 metronome = require('./metronome');
 
-var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update });
+window.game = new Phaser.Game(800, 600, Phaser.CANVAS, 'phaser-example', { preload: preload, create: create, update: update });
 
 function preload() {
 }
@@ -23,6 +23,8 @@ window.smoothing = 10;
 window.deltaMax = 15;
 window.deltaThresh = .8;
 var isPlaying = false;
+
+window.mode = 'sqrt';
 
 function create() {
 
@@ -84,36 +86,36 @@ function update() {
 
   var sign = filteredDelta < 0 ? -1 : 1;
   var delta = sign * Math.min(1, Math.abs(filteredDelta/deltaMax));
-  //var delta = filteredAccel;
+  //var delta = 1 - Math.abs(filteredAccel);
   
   var deltas = {
     linear: Math.abs(delta),
-    square: Math.pow(Math.abs(delta), 2),
+    square: Math.pow(delta, 2),
     exp: (1 - Math.pow(Math.E, Math.abs(delta)))/(1 - Math.E),
     sqrt: Math.pow(Math.abs(delta), .5),
   };
 
-  for (var s in ['linear']) {
-    var sprite = sprites[s];
-    sprite.height = scale * spriteSize * deltas[s];
-    sprite.width = spriteSize * deltas[s];
-  }
+  var modeDelta = deltas[window.mode];
+  var sprite = sprites[window.mode];
+  sprite.height = scale * spriteSize * modeDelta;
+  sprite.width = spriteSize * modeDelta;
 
+/*
   if (isPlaying) {
-    if (Math.abs(delta) < (deltaThresh *.8)) {
+    //if (Math.abs(modeDelta) < (deltaThresh *.8)) {
+    if (accelIsTriggered) {
       isPlaying = false;
     }
   }
-  else if (Math.abs(delta) >= deltaThresh ) {
+  else if (modeDelta >= deltaThresh ) {
     metronome.playNote();
     isPlaying = true;
   }
+  */
 
-  /*
   if (accelIsTriggered) {
     metronome.playNote();
     reachedAccelThresh = false;
   }
-  */
 
 }

@@ -15,6 +15,7 @@ var last16thNoteDrawn = -1; // the last "box" we drew on the screen
 var notesInQueue = [];      // the notes that have been put into the web audio,
                             // and may or may not have played yet. {note, time}
 var timerWorker = null;     // The Web Worker used to fire timer messages
+var noteEvents = [];
 
 
 // First, let's shim the requestAnimationFrame API, with a setTimeout fallback
@@ -62,6 +63,12 @@ function scheduleNote( beatNumber, time ) {
 
     osc.start( time );
     osc.stop( time + noteLength );
+
+    var now = new Date().getTime();
+    var audioNow = audioContext.currentTime;
+    var dt = now - (audioNow * 1000);
+
+    noteEvents.push(now + (time - audioNow)*1000);
 }
 
 function playNote() {
@@ -146,4 +153,5 @@ window.addEventListener("load", init );
 
 module.exports.play = play;
 module.exports.playNote = playNote;
+module.exports.noteEvents = noteEvents;
 
