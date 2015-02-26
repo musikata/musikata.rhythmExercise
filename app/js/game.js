@@ -1,3 +1,4 @@
 //require('./varyingSize');
 //require('./velocityTrail');
-require('./collectPos');
+//require('./velocityTrail');
+require('./springPtr');
